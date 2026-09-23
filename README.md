@@ -334,12 +334,63 @@ OrderNow/
 
 ---
 
-## In Development / Future Enhancements
+## If I Had Another Day
 
-- Automated PHPUnit / Pest integration & concurrency testing.
-- Web-based management UI (Blade / Vue / Tailwind).
-- User authentication and role-based access control (Sanctum / Spatie Roles).
-- Application containerization with Docker & Docker Compose.
+If given more time, the following improvements would meaningfully 
+strengthen the system:
+
+### 1. A More Complete Ordering Flow
+The current UI is functional but minimal — it prioritises proving the 
+backend logic over polish. I would build a proper customer-facing 
+ordering experience: a mobile-friendly menu browser, cart persistence, 
+table or takeaway selection, and a smoother checkout flow with 
+quantity adjustments and order notes.
+
+### 2. Role-Based Access Control
+Currently the system has no authentication — anyone with the URL can 
+access any endpoint. I would add Sanctum-based authentication with at 
+least three roles:
+- **Administrator** — full access to menu, inventory, pricing, and reports
+- **Cashier** — can create orders and view their own sales
+- **Kitchen Staff** — can view pending orders on a dedicated Kitchen 
+  Display Screen (KDS) and mark them as *preparing*, *ready*, or *served*
+
+This would require extending the `orders.status` enum to model the 
+kitchen workflow, and adding authorization policies to each API route.
+
+### 3. Payment Handling
+The system currently stops at order confirmation — no payment is 
+recorded. I would add a `payments` table and a checkout step supporting 
+at least:
+- Cash / card / e-wallet as payment methods
+- Partial payments and refunds
+- Automatic receipt generation (PDF or print-friendly view)
+
+This would also mean extending the order lifecycle beyond `confirmed` to 
+include `paid` and `completed`.
+
+### 4. Automated Testing
+The current system was validated manually through Postman (see 
+[docs/API.md](docs/API.md) and the included Postman collection). While 
+the concurrency behaviour was explicitly demonstrated, automated tests 
+would provide stronger regression safety. I would add PHPUnit feature 
+tests covering:
+- Successful order deducts inventory
+- Insufficient stock rejects the order
+- Partial failure rolls back the transaction
+- Concurrent confirms — only one succeeds
+- Idempotent confirmation
+
+### 5. Incomplete Areas (Honest Disclosure)
+- The **frontend is intentionally minimal** — it demonstrates the API 
+  works end-to-end but does not include search, filtering beyond basic 
+  status, or mobile-optimised layouts.
+- **No authentication or rate limiting** is implemented; the API is 
+  fully open for local testing.
+- **Automated tests have not yet been written** — testing is currently 
+  manual via Postman.
+
+An honest working foundation beats a polished feature that doesn't work.
 
 ---
 
