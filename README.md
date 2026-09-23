@@ -1,6 +1,6 @@
 # OrderNow
 
-OrderNow is a high-performance, concurrency-safe restaurant management REST API built with Laravel 12 and MySQL. It provides comprehensive backend services to manage menu items, inventory ingredients, recipe mappings, multi-stage order lifecycles, and real-time executive dashboard analytics.
+OrderNow is a concurrency-safe restaurant management REST API built with Laravel 12 and MySQL. It provides comprehensive backend services to manage menu items, inventory ingredients, recipe mappings, multi-stage order lifecycles, and real-time executive dashboard analytics.
 
 The system features atomic inventory deduction with pessimistic row-level database locking (`SELECT ... FOR UPDATE`), idempotency controls, audit ledger logging, and database-level check constraints to guarantee stock integrity under concurrent request scenarios.
 
