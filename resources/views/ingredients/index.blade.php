@@ -71,6 +71,41 @@
     </div>
 </div>
 
+<!-- Adjust Stock Popup Modal -->
+<div id="adjust-modal" class="fixed inset-0 bg-slate-900/50 flex items-center justify-center hidden z-50 p-4">
+    <div class="bg-white rounded-lg shadow-lg border border-slate-200 max-w-md w-full p-6 space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h3 class="text-lg font-bold text-slate-900">Adjust Stock: <span id="modal-ingredient-name"></span></h3>
+            <button id="close-modal-btn" type="button" class="text-slate-400 hover:text-slate-600 text-xl font-bold leading-none">&times;</button>
+        </div>
+
+        <!-- Modal Error Alert Box -->
+        <div id="modal-error-box" class="hidden p-3 bg-red-100 border border-red-300 text-red-700 rounded text-sm"></div>
+
+        <form id="adjust-form" onsubmit="return false;" class="space-y-4">
+            <input type="hidden" id="modal-ingredient-id" />
+            <div>
+                <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Stock Change Amount</label>
+                <input type="number" step="any" id="modal-change" placeholder="e.g. 100 or -50" required class="w-full border border-slate-300 rounded p-2 text-sm focus:outline-none focus:border-blue-500" />
+                <p class="text-xs text-slate-500 mt-1">Use positive numbers to add stock, negative to reduce.</p>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Reason</label>
+                <select id="modal-reason" required class="w-full border border-slate-300 rounded p-2 text-sm focus:outline-none focus:border-blue-500">
+                    <option value="adjustment">Adjustment</option>
+                    <option value="restock">Restock</option>
+                    <option value="waste">Waste</option>
+                </select>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                <button type="button" id="cancel-adjust-btn" class="px-3 py-1.5 rounded text-slate-700 bg-slate-200 hover:bg-slate-300 text-sm font-medium">Cancel</button>
+                <button type="button" id="submit-adjust-btn" class="px-3 py-1.5 rounded text-white bg-blue-600 hover:bg-blue-700 text-sm font-medium">Save Adjustment</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const errorBox = document.getElementById('error-box');
@@ -80,6 +115,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const stockInput = document.getElementById('field-stock');
     const reorderInput = document.getElementById('field-reorder');
     const tableBody = document.getElementById('ingredients-table-body');
+
+    // Modal elements
+    const adjustModal = document.getElementById('adjust-modal');
+    const modalIngredientId = document.getElementById('modal-ingredient-id');
+    const modalIngredientName = document.getElementById('modal-ingredient-name');
+    const modalChange = document.getElementById('modal-change');
+    const modalReason = document.getElementById('modal-reason');
+    const modalErrorBox = document.getElementById('modal-error-box');
 
     function showError(msg) {
         errorBox.innerHTML = msg;
@@ -103,6 +146,21 @@ document.addEventListener('DOMContentLoaded', () => {
     function hideForm() {
         formContainer.classList.add('hidden');
         hideError();
+    }
+
+    function openModal(ingredient) {
+        modalIngredientId.value = ingredient.id;
+        modalIngredientName.textContent = `${ingredient.name} (${ingredient.unit})`;
+        modalChange.value = '';
+        modalReason.value = 'adjustment';
+        modalErrorBox.classList.add('hidden');
+        modalErrorBox.innerHTML = '';
+        adjustModal.classList.remove('hidden');
+    }
+
+    function closeModal() {
+        adjustModal.classList.add('hidden');
+        modalErrorBox.classList.add('hidden');
     }
 
     function loadIngredients() {
@@ -139,7 +197,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         </td>
                     `;
 
-                    tr.querySelector('.adjust-btn').addEventListener('click', () => adjustStock(item));
+                    tr.querySelector('.adjust-btn').addEventListener('click', () => openModal(item));
                     tableBody.appendChild(tr);
                 });
             })
@@ -184,42 +242,45 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function adjustStock(ingredient) {
-        const changeStr = window.prompt("Enter change amount (e.g. 100 or -50):");
-        if (changeStr === null || changeStr.trim() === '') return;
+    function submitStockAdjustment() {
+        const id = modalIngredientId.value;
+        const change = parseFloat(modalChange.value);
+        const reason = modalReason.value;
 
-        const change = parseFloat(changeStr);
+        modalErrorBox.classList.add('hidden');
+
         if (isNaN(change) || change === 0) {
-            alert('Invalid change amount.');
+            modalErrorBox.textContent = 'Please enter a non-zero stock change amount.';
+            modalErrorBox.classList.remove('hidden');
             return;
         }
 
-        const reason = window.prompt("Reason (adjustment/waste/restock):", "adjustment");
-        if (!reason || reason.trim() === '') return;
-
-        fetch(`${window.API_BASE}/ingredients/${ingredient.id}/adjust`, {
+        fetch(`${window.API_BASE}/ingredients/${id}/adjust`, {
             method: 'PATCH',
             headers: {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ change, reason: reason.trim() })
+            body: JSON.stringify({ change, reason })
         })
         .then(async r => {
             const resData = await r.json().catch(() => ({}));
             if (!r.ok) {
                 if (r.status === 422 && resData.errors) {
-                    const errMsgs = Object.values(resData.errors).flat().join('\n');
-                    alert(`Adjustment failed:\n${errMsgs}`);
+                    const errMsgs = Object.values(resData.errors).flat().join('<br>');
+                    modalErrorBox.innerHTML = errMsgs;
                 } else {
-                    alert(resData.message || `Adjustment failed with status ${r.status}`);
+                    modalErrorBox.textContent = resData.message || `Adjustment failed with status ${r.status}`;
                 }
+                modalErrorBox.classList.remove('hidden');
                 return;
             }
+            closeModal();
             loadIngredients();
         })
         .catch(err => {
-            alert(`Error adjusting stock: ${err.message}`);
+            modalErrorBox.textContent = `Error adjusting stock: ${err.message}`;
+            modalErrorBox.classList.remove('hidden');
         });
     }
 
@@ -233,6 +294,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('save-ingredient-btn').addEventListener('click', saveIngredient);
     document.getElementById('cancel-ingredient-btn').addEventListener('click', hideForm);
+
+    document.getElementById('close-modal-btn').addEventListener('click', closeModal);
+    document.getElementById('cancel-adjust-btn').addEventListener('click', closeModal);
+    document.getElementById('submit-adjust-btn').addEventListener('click', submitStockAdjustment);
 
     loadIngredients();
 });
