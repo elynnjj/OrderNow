@@ -382,7 +382,7 @@ tests covering:
 - Idempotent confirmation
 
 ### 5. Incomplete Areas (Honest Disclosure)
-- The **frontend is intentionally minimal** — it demonstrates the API 
+- The **frontend not to its fullest best form** — but it should demonstrates the API 
   works end-to-end but does not include search, filtering beyond basic 
   status, or mobile-optimised layouts.
 - **No authentication or rate limiting** is implemented; the API is 
@@ -390,7 +390,6 @@ tests covering:
 - **Automated tests have not yet been written** — testing is currently 
   manual via Postman.
 
-An honest working foundation beats a polished feature that doesn't work.
 
 ---
 
