@@ -29,7 +29,8 @@ class OrderService
             }
         }
 
-        return DB::transaction(function () use ($data) {
+        // Transaction 1: create the order (always commits)
+        $order = DB::transaction(function () use ($data) {
             $orderNumber = null;
             for ($attempt = 0; $attempt < 5; $attempt++) {
                 $candidate = '#' . str_pad((string) random_int(1000, 9999), 4, '0', STR_PAD_LEFT);
@@ -76,6 +77,19 @@ class OrderService
 
             return $order->fresh(['items.menuItem']);
         });
+
+        // Auto-confirm: if stock is sufficient, order becomes 'confirmed'.
+        // If insufficient, the order stays 'pending' and can be confirmed
+        // manually later via POST /api/orders/{id}/confirm.
+        try {
+            $order = $this->confirmOrder($order);
+        } catch (InsufficientStockException $e) {
+            // Swallow the exception — order stays pending.
+            // Reload to get final state.
+            $order = $order->fresh(['items.menuItem']);
+        }
+
+        return $order;
     }
 
     /**
