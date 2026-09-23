@@ -143,7 +143,7 @@ The system relies on 6 domain-specific database tables:
    ```bash
    php artisan serve
    ```
-   The API will be live at `http://127.0.0.1:8000/api`.
+   The API will be live at `http://127.0.0.1:8000`.
 
 ---
 
